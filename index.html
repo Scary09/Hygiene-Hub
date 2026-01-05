@@ -1,1 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HygieneHub </title>
+    <meta name="description" content="Rate and review food stall hygiene. Find the cleanest food stalls in your area.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        .rating-star {
+            color: #ffc107;
+        }
+        .rating-star-empty {
+            color: #e4e5e9;
+        }
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e5e7eb;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .hygiene-excellent { background-color: #10b981; }
+        .hygiene-good { background-color: #3b26fa; }
+        .hygiene-fair { background-color: #f59e0b; }
+        .hygiene-poor { background-color: #ef4444; }
+        .hygiene-very-poor { background-color: #7c2d12; }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: rgb(241, 234, 234);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .tab-button {
+            padding: 12px 24px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        
+        .qr-code-container {
+            background: rgb(249, 250, 249);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg">
+                        <i class="fas fa-utensils text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">Hygiene<span class="text-blue-600">Hub</span></h1>
+                </div>
+                
+                <div class="hidden md:flex space-x-8">
+                    <a href="#" class="text-gray-700 hover:text-blue-600 font-medium" onclick="showSection('home')">Home</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 font-medium" onclick="showSection('leaderboard')">Leaderboard</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 font-medium" onclick="showSection('add-stall')">Add Stall</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 font-medium" onclick="showSection('search')">Search</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div id="user-info" class="hidden">
+                        <span id="user-email" class="text-gray-700 mr-4"></span>
+                        <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium">
+                            Logout
+                        </button>
+                    </div>
+                    <div id="auth-buttons">
+                        <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                            Login
+                        </button>
+                        <button id="register-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium ml-2">
+                            Register
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
 
+    <main class="container mx-auto px-4 py-8">
+    
+        <section id="home" class="section">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Find the Cleanest Food Stalls Near You</h2>
+                <p class="text-gray-600 text-lg max-w-3xl mx-auto">Rate food stalls based on hygiene factors like water quality, mask usage, gloves, and cleanliness. Help others make informed decisions about where to eat.</p>
+            </div>
+            
+            
+            <div class="max-w-2xl mx-auto mb-12">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Search by city or area name..." class="w-full p-4 pl-12 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <button id="search-btn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                        Search
+                    </button>
+                </div>
+            </div>
+            
+            
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Top Rated Stalls</h3>
+                <div id="featured-stalls" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                </div>
+            </div>
+            
+            
+            <div class="bg-white rounded-2xl shadow-lg p-8 mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-8 text-center">How It Works</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div class="text-center">
+                        <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-search text-2xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800 mb-2">Search</h4>
+                        <p class="text-gray-600">Find food stalls in your area by city or locality name.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-star text-2xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800 mb-2">Rate</h4>
+                        <p class="text-gray-600">Rate stalls based on water quality, masks, gloves, and cleanliness.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-purple-100 text-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-trophy text-2xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800 mb-2">Leaderboard</h4>
+                        <p class="text-gray-600">See which stalls have the highest hygiene scores in your area.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-yellow-100 text-yellow-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-qrcode text-2xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800 mb-2">QR Code</h4>
+                        <p class="text-gray-600">Stall owners can generate QR codes to display their hygiene score.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        
+        <section id="leaderboard" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Hygiene Leaderboard</h2>
+                <p class="text-gray-600">Top rated food stalls based on hygiene scores</p>
+            </div>
+            
+            <div class="flex mb-6 border-b">
+                <button class="tab-button active" onclick="changeLeaderboardCity('all')">All Cities</button>
+                <button class="tab-button" onclick="changeLeaderboardCity('new-york')">Kolkata</button>
+                <button class="tab-button" onclick="changeLeaderboardCity('los-angeles')">Delhi</button>
+                <button class="tab-button" onclick="changeLeaderboardCity('chicago')">Mumbai</button>
+                <button class="tab-button" onclick="changeLeaderboardCity('miami')">Bangalore</button>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stall Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hygiene Score</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factors</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviews</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body" class="bg-white divide-y divide-gray-200">
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        
+        
+        <section id="add-stall" class="section hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Add a New Food Stall</h2>
+                    <p class="text-gray-600">Help others discover clean food stalls by adding new ones to our database.</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <form id="add-stall-form">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2" for="stall-name">Stall Name *</label>
+                                <input type="text" id="stall-name" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2" for="stall-type">Cuisine Type *</label>
+                                <select id="stall-type" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Select cuisine type</option>
+                                    <option value="street-food">Street Food</option>
+                                    <option value="indian">Indian</option>
+                                    <option value="chinese">Chinese</option>
+                                    <option value="mexican">Mexican</option>
+                                    <option value="italian">Italian</option>
+                                    <option value="american">American</option>
+                                    <option value="vegetarian">Vegetarian</option>
+                                    <option value="vegan">Vegan</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2" for="stall-city">City *</label>
+                                <input type="text" id="stall-city" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2" for="stall-area">Area/Locality *</label>
+                                <input type="text" id="stall-area" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2" for="stall-description">Description</label>
+                            <textarea id="stall-description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Describe the stall, popular dishes, etc."></textarea>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">Initial Hygiene Rating</h3>
+                            <p class="text-gray-600 mb-6">Rate this stall based on the following hygiene factors (1 = Poor, 5 = Excellent)</p>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-gray-700 font-medium">Water Quality</label>
+                                        <span id="water-quality-value" class="text-blue-600 font-medium">3</span>
+                                    </div>
+                                    <input type="range" id="water-quality" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Poor</span>
+                                        <span>Fair</span>
+                                        <span>Good</span>
+                                        <span>Very Good</span>
+                                        <span>Excellent</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-gray-700 font-medium">Mask Usage</label>
+                                        <span id="mask-usage-value" class="text-blue-600 font-medium">3</span>
+                                    </div>
+                                    <input type="range" id="mask-usage" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Poor</span>
+                                        <span>Fair</span>
+                                        <span>Good</span>
+                                        <span>Very Good</span>
+                                        <span>Excellent</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-gray-700 font-medium">Glove Usage</label>
+                                        <span id="glove-usage-value" class="text-blue-600 font-medium">3</span>
+                                    </div>
+                                    <input type="range" id="glove-usage" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Poor</span>
+                                        <span>Fair</span>
+                                        <span>Good</span>
+                                        <span>Very Good</span>
+                                        <span>Excellent</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-gray-700 font-medium">Cleanliness</label>
+                                        <span id="cleanliness-value" class="text-blue-600 font-medium">3</span>
+                                    </div>
+                                    <input type="range" id="cleanliness" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Poor</span>
+                                        <span>Fair</span>
+                                        <span>Good</span>
+                                        <span>Very Good</span>
+                                        <span>Excellent</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2" for="stall-photo">Upload Stall Photo</label>
+                            <input type="file" id="stall-photo" accept="image/*" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="text-gray-500 text-sm mt-1">Upload a clear photo of the food stall (optional)</p>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium text-lg">
+                                Add Stall
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    
+        <section id="search" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Search Results</h2>
+                <p id="search-results-info" class="text-gray-600">Search for food stalls by city or area name</p>
+            </div>
+            
+            <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="bg-blue-600 text-white p-2 rounded-lg">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Hygiene<span class="text-blue-400">Hub</span></h3>
+                    </div>
+                    <p class="text-gray-400">Helping you find the cleanest food stalls in your area. Rate, review, and discover hygienic food options.</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white" onclick="showSection('home')">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white" onclick="showSection('leaderboard')">Leaderboard</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white" onclick="showSection('add-stall')">Add Stall</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white" onclick="showSection('search')">Search</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Hygiene Factors</h4>
+                    <ul class="space-y-2">
+                        <li class="text-gray-400">Water Quality</li>
+                        <li class="text-gray-400">Mask Usage</li>
+                        <li class="text-gray-400">Glove Usage</li>
+                        <li class="text-gray-400">Cleanliness</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Contact Us</h4>
+                    <p class="text-gray-400 mb-2"><i class="fas fa-envelope mr-2"></i> support@hygienehub.com</p>
+                    <p class="text-gray-400 mb-2"><i class="fas fa-phone mr-2"></i> +1234567890</p>
+                    <div class="flex space-x-4 mt-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2026 HygieneHub. All rights reserved. | <a href="#" class="hover:text-white">Privacy Policy</a> | <a href="#" class="hover:text-white">Terms of Service</a></p>
+            </div>
+        </div>
+    </footer>
+
+    
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Login to Your Account</h3>
+                    <button onclick="closeModal('login-modal')" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="login-email">Email Address</label>
+                        <input type="email" id="login-email" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-700 font-medium mb-2" for="login-password">Password</label>
+                        <input type="password" id="login-password" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium">
+                            Login
+                        </button>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p class="text-gray-600">Don't have an account? <button type="button" onclick="showRegisterModal()" class="text-blue-600 hover:text-blue-800 font-medium">Register here</button></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Create an Account</h3>
+                    <button onclick="closeModal('register-modal')" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="register-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="register-name">Full Name</label>
+                        <input type="text" id="register-name" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2" for="register-email">Email Address</label>
+                        <input type="email" id="register-email" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-700 font-medium mb-2" for="register-password">Password</label>
+                        <input type="password" id="register-password" required minlength="6" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-gray-500 text-sm mt-1">Password must be at least 6 characters long</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded-lg font-medium">
+                            Create Account
+                        </button>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p class="text-gray-600">Already have an account? <button type="button" onclick="showLoginModal()" class="text-blue-600 hover:text-blue-800 font-medium">Login here</button></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div id="stall-details-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="stall-modal-title" class="text-2xl font-bold text-gray-800">Stall Details</h3>
+                    <button onclick="closeModal('stall-details-modal')" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="stall-modal-content">
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div id="qr-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Hygiene Score QR Code</h3>
+                    <button onclick="closeModal('qr-modal')" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-gray-600 mb-6">Stall owners can display this QR code at their stall. Customers can scan it to see the latest hygiene rating.</p>
+                    
+                    <div class="qr-code-container inline-block mb-6">
+                        <div id="qr-code"></div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p class="text-gray-700 font-medium mb-2">Hygiene Score: <span id="qr-score" class="text-2xl font-bold text-blue-600">8.5</span>/10</p>
+                        <p id="qr-stall-name" class="text-gray-600">Tasty Tacos</p>
+                        <p id="qr-stall-location" class="text-gray-600">New York, Manhattan</p>
+                    </div>
+                    
+                    <button onclick="downloadQRCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                        <i class="fas fa-download mr-2"></i> Download QR Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script>
