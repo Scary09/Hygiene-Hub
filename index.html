@@ -1065,3 +1065,290 @@
                 showLoginModal();
                 return;
             }
+            const stallName = document.getElementById('stall-name').value;
+            const stallType = document.getElementById('stall-type').value;
+            const stallCity = document.getElementById('stall-city').value;
+            const stallArea = document.getElementById('stall-area').value;
+            const stallDescription = document.getElementById('stall-description').value;
+            
+            const waterQuality = parseInt(document.getElementById('water-quality').value);
+            const maskUsage = parseInt(document.getElementById('mask-usage').value);
+            const gloveUsage = parseInt(document.getElementById('glove-usage').value);
+            const cleanliness = parseInt(document.getElementById('cleanliness').value);
+            
+            
+            const overallScore = ((waterQuality + maskUsage + gloveUsage + cleanliness) / 4) * 2;
+            
+            
+            showNotification(`"${stallName}" added successfully!`, 'success');
+            
+            
+            document.getElementById('add-stall-form').reset();
+            document.getElementById('water-quality-value').textContent = '3';
+            document.getElementById('mask-usage-value').textContent = '3';
+            document.getElementById('glove-usage-value').textContent = '3';
+            document.getElementById('cleanliness-value').textContent = '3';
+            
+            
+            showSection('home');
+        });
+        
+        
+        function generateQRCode(stallId) {
+            const stall = sampleStalls.find(s => s.id === stallId);
+            if (!stall) return;
+            
+            currentStallForQR = stall;
+            
+            
+            const qrData = JSON.stringify({
+                stallName: stall.name,
+                location: `${stall.area}, ${stall.city}`,
+                hygieneScore: stall.overallScore.toFixed(1),
+                lastUpdated: new Date().toISOString().split('T')[0],
+                url: `https://hygienehub.com/stalls/${stall.id}`
+            });
+            
+            
+            document.getElementById('qr-code').innerHTML = '';
+            
+            
+            QRCode.toCanvas(document.getElementById('qr-code'), qrData, {
+                width: 200,
+                height: 200,
+                margin: 1,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, function(error) {
+                if (error) {
+                    console.error(error);
+                    showNotification('Failed to generate QR code', 'error');
+                }
+            });
+            
+            
+            document.getElementById('qr-score').textContent = stall.overallScore.toFixed(1);
+            document.getElementById('qr-stall-name').textContent = stall.name;
+            document.getElementById('qr-stall-location').textContent = `${stall.area}, ${stall.city}`;
+            
+            openModal('qr-modal');
+        }
+        
+        function downloadQRCode() {
+            const canvas = document.querySelector('#qr-code canvas');
+            if (!canvas) return;
+            
+            const link = document.createElement('a');
+            link.download = `hygiene-qr-${currentStallForQR.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            showNotification('QR code downloaded successfully!', 'success');
+        }
+        
+        
+        function getCuisineType(type) {
+            const types = {
+                'street-food': 'Street Food',
+                'indian': 'Indian',
+                'chinese': 'Chinese',
+                'mexican': 'Mexican',
+                'italian': 'Italian',
+                'american': 'American',
+                'vegetarian': 'Vegetarian',
+                'vegan': 'Vegan'
+            };
+            return types[type] || type;
+        }
+        
+        function getScoreColorClass(score) {
+            if (score >= 9) return 'hygiene-excellent';
+            if (score >= 8) return 'hygiene-good';
+            if (score >= 7) return 'hygiene-fair';
+            if (score >= 6) return 'hygiene-poor';
+            return 'hygiene-very-poor';
+        }
+        
+        function renderStars(rating) {
+            let stars = '';
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars) {
+                    stars += '<i class="fas fa-star rating-star"></i>';
+                } else if (i === fullStars + 1 && hasHalfStar) {
+                    stars += '<i class="fas fa-star-half-alt rating-star"></i>';
+                } else {
+                    stars += '<i class="far fa-star rating-star-empty"></i>';
+                }
+            }
+            
+            return stars;
+        }
+        
+        function showSection(sectionId) {
+            
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('text-blue-600', 'font-semibold');
+                link.classList.add('text-gray-700');
+            });
+            
+            
+            const activeLink = document.querySelector(`nav a[onclick="showSection('${sectionId}')"]`);
+            if (activeLink) {
+                activeLink.classList.remove('text-gray-700');
+                activeLink.classList.add('text-blue-600', 'font-semibold');
+            }
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        function showLoginModal() {
+            closeModal('register-modal');
+            openModal('login-modal');
+        }
+        
+        function showRegisterModal() {
+            closeModal('login-modal');
+            openModal('register-modal');
+        }
+        
+        function showNotification(message, type = 'info') {
+        
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 max-w-md transform transition-transform duration-300 translate-y-0`;
+            
+            
+            if (type === 'success') {
+                notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            } else if (type === 'warning') {
+                notification.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            } else {
+                notification.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            }
+            
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'exclamation-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${icon} mr-3"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.transform = 'translateY(-100px)';
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+        
+        function changeLeaderboardCity(city) {
+            
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            
+            
+            renderLeaderboard(city);
+        }
+        
+        
+        loginBtn.addEventListener('click', showLoginModal);
+        registerBtn.addEventListener('click', showRegisterModal);
+    
+        
+        searchBtn.addEventListener('click', () => {
+            searchStalls(searchInput.value);
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchStalls(searchInput.value);
+            }
+        });
+        
+        
+        document.getElementById('water-quality').addEventListener('input', (e) => {
+            document.getElementById('water-quality-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('mask-usage').addEventListener('input', (e) => {
+            document.getElementById('mask-usage-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('glove-usage').addEventListener('input', (e) => {
+            document.getElementById('glove-usage-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('cleanliness').addEventListener('input', (e) => {
+            document.getElementById('cleanliness-value').textContent = e.target.value;
+        });
+        
+        
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+        
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFeaturedStalls();
+            renderLeaderboard();
+            
+            
+            showSection('home');
+            
+            
+            const user = auth.currentUser;
+            if (user) {
+                updateUIForUser(user);
+            }
+        });
+    </script>
+</body>
+
+</html>
