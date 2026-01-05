@@ -557,3 +557,511 @@
 
     
     <script>
+          
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5MbVsFWVUalGVA5VPS0-Nkvs9ZSeF5bk",
+            authDomain: "foodhygiene-5dcb4.firebaseapp.com",
+            projectId: "foodhygiene-5dcb4",
+            storageBucket: "foodhygiene-5dcb4.firebasestorage.app",
+            messagingSenderId: "615573792166",
+            appId: "1:615573792166:web:85c2ee0ecc6503f3e61b67"
+        };
+        
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        
+        
+        const sampleStalls = [
+            {
+                id: "1",
+                name: "Chennai Fast Food",
+                type: "South Indian",
+                city: "Kolkata",
+                area: "Saltlake Sector 4",
+                description: "Authentic South Indian street food with fresh ingredients.",
+                overallScore: 8.7,
+                waterQuality: 4.5,
+                maskUsage: 4.0,
+                gloveUsage: 4.2,
+                cleanliness: 4.8,
+                totalReviews: 24,
+                photoUrl: "https://lh3.googleusercontent.com/p/AF1QipMZxhf_hkFaewhyTQHM1TkOCtknk85n8DpCUHPx=w426-h240-k-no"
+            },
+            {
+                id: "2",
+                name: "At Box",
+                type: "indian",
+                city: "Kolkata",
+                area: "Bangaon, Kulpi Rd,Sec-B ,Tangra",
+                description: "Delicious Indian street food with a variety of curries.",
+                overallScore: 9.2,
+                waterQuality: 4.8,
+                maskUsage: 4.5,
+                gloveUsage: 4.7,
+                cleanliness: 4.9,
+                totalReviews: 32,
+                photoUrl: "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSxelV7tc9Y9Y5gLxZMZZhFDfAPYaNwa3zUlG0NZO_lod_rJjvZcIF1jJPf4pX-hyH_4h3Um2H5-EjuICqyr7_KU9JXUdpoXGya-L6ALd1Pb5TOfqF4oa0hl7m-rDC5PYed7IcNRymbDM6xN=w408-h243-k-no"
+            },
+            {
+                id: "3",
+                name: "OLIVE Restaurant",
+                type: "Fast Food",
+                city: "Kolkata",
+                area: "RA 302, 105, Nabapally, Sector IV",
+                description: "Freshly made noodles and stir-fry dishes.",
+                overallScore: 7.8,
+                waterQuality: 4.0,
+                maskUsage: 3.5,
+                gloveUsage: 3.8,
+                cleanliness: 4.2,
+                totalReviews: 18,
+                photoUrl: "https://lh3.googleusercontent.com/p/AF1QipNzWQLRWDayofCsvXhYeHkJ83ojzRS2kgo_UVvf=w408-h306-k-no"
+            },
+            {
+                id: "4",
+                name: "The Mama 's Pizza",
+                type: "Italian",
+                city: "Kolkata",
+                area: "Salt Lake, P.O, L.221, South, near Monginis Cake Shop, Sukant Nagar, Sector IV, Bidhannagar",
+                description: "Healthy italian and mexican options.",
+                overallScore: 9.5,
+                waterQuality: 4.9,
+                maskUsage: 4.8,
+                gloveUsage: 4.9,
+                cleanliness: 5.0,
+                totalReviews: 41,
+                photoUrl: "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSyCXUvrs1fTvjAqk1Smuuz4kEaFcmMlUDYwfmuMUpcvUyya_7C6duFRHqt-minHtC2OpQNxHC1l50F40eIYpQXgr_vEJqTcS7UwxjzS90f-O5HwIXBgzXwYnk9MtSGqx-ul-yFV=w408-h541-k-no"
+            },
+            {
+                id: "5",
+                name: "Pizza Street",
+                type: "italian",
+                city: "Kolkata",
+                area: "Saltlake Sector 2",
+                description: "Wood-fired pizza with fresh toppings.",
+                overallScore: 8.1,
+                waterQuality: 4.2,
+                maskUsage: 3.8,
+                gloveUsage: 4.0,
+                cleanliness: 4.3,
+                totalReviews: 22,
+                photoUrl: "data:image/jpeg;base64,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"
+            },
+            {
+                id: "6",
+                name: "Burger Haven",
+                type: "american",
+                city: "Kolkata",
+                area: "Saltlake Sector 5",
+                description: "Gourmet burgers with hand-cut fries.",
+                overallScore: 7.5,
+                waterQuality: 3.8,
+                maskUsage: 3.2,
+                gloveUsage: 3.5,
+                cleanliness: 4.0,
+                totalReviews: 15,
+                photoUrl: "https://picsum.photos/400/300?random=6"
+            }
+        ];
+        
+        const sampleReviews = [
+            {
+                id: "1",
+                stallId: "1",
+                userId: "user1",
+                userName: "Subham Shaw",
+                rating: 4.5,
+                comment: "Great tacos! The staff always wear gloves and masks. Very clean preparation area.",
+                date: "2023-10-15"
+            },
+            {
+                id: "2",
+                stallId: "1",
+                userId: "user2",
+                userName: "Vivek Prasad",
+                rating: 4.0,
+                comment: "Good food but water quality could be better. They use bottled water for drinking though.",
+                date: "2023-10-10"
+            },
+            {
+                id: "3",
+                stallId: "2",
+                userId: "user3",
+                userName: "Sohom Sadhukhan",
+                rating: 5.0,
+                comment: "Excellent hygiene standards! All staff wear masks and gloves. The place is spotless.",
+                date: "2023-10-18"
+            }
+        ];
+        
+        let currentUser = null;
+        let currentStallForQR = null;
+        
+        
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const authButtons = document.getElementById('auth-buttons');
+        const userEmail = document.getElementById('user-email');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const featuredStalls = document.getElementById('featured-stalls');
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        const searchResults = document.getElementById('search-results');
+        const searchResultsInfo = document.getElementById('search-results-info');
+        
+    
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                updateUIForUser(user);
+            } else {
+                currentUser = null;
+                updateUIForGuest();
+            }
+        });
+        
+        
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    closeModal('login-modal');
+                    showNotification('Login successful!', 'success');
+                })
+                .catch((error) => {
+                    showNotification(error.message, 'error');
+                });
+        });
+        
+        
+        document.getElementById('register-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    
+                    return db.collection('users').doc(userCredential.user.uid).set({
+                        name: name,
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    closeModal('register-modal');
+                    showNotification('Account created successfully!', 'success');
+                })
+                .catch((error) => {
+                    showNotification(error.message, 'error');
+                });
+        });
+        
+        
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut()
+                .then(() => {
+                    showNotification('Logged out successfully', 'success');
+                })
+                .catch((error) => {
+                    showNotification(error.message, 'error');
+                });
+        });
+        
+        
+        function updateUIForUser(user) {
+            userEmail.textContent = user.email;
+            userInfo.classList.remove('hidden');
+            authButtons.classList.add('hidden');
+        }
+        
+        function updateUIForGuest() {
+            userInfo.classList.add('hidden');
+            authButtons.classList.remove('hidden');
+        }
+        
+    
+        function renderFeaturedStalls() {
+            featuredStalls.innerHTML = '';
+            
+        
+            const topStalls = [...sampleStalls]
+                .sort((a, b) => b.overallScore - a.overallScore)
+                .slice(0, 3);
+            
+            topStalls.forEach(stall => {
+                const stallCard = createStallCard(stall);
+                featuredStalls.appendChild(stallCard);
+            });
+        }
+        
+        
+        function createStallCard(stall) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-lg overflow-hidden card-hover';
+            card.innerHTML = `
+                <div class="relative">
+                    <img src="${stall.photoUrl}" alt="${stall.name}" class="w-full h-48 object-cover" loading="lazy">
+                    <div class="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md">
+                        <span class="font-bold text-blue-600">${stall.overallScore.toFixed(1)}</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="text-xl font-bold text-gray-800">${stall.name}</h4>
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">${getCuisineType(stall.type)}</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">${stall.description}</p>
+                    <div class="flex items-center text-gray-600 mb-4">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        <span>${stall.area}, ${stall.city}</span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">Hygiene Score</span>
+                            <span class="text-sm font-bold ${getScoreColorClass(stall.overallScore)}">${stall.overallScore.toFixed(1)}/10</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${getScoreColorClass(stall.overallScore)}" style="width: ${stall.overallScore * 10}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button onclick="viewStallDetails('${stall.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                            View Details
+                        </button>
+                        <button onclick="generateQRCode('${stall.id}')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+        
+        
+        function renderLeaderboard(city = 'all') {
+            leaderboardBody.innerHTML = '';
+            
+            let filteredStalls = sampleStalls;
+            if (city !== 'all') {
+                filteredStalls = sampleStalls.filter(stall => 
+                    stall.city.toLowerCase().replace(' ', '-') === city
+                );
+            }
+            
+            
+            const sortedStalls = [...filteredStalls].sort((a, b) => b.overallScore - a.overallScore);
+            
+            sortedStalls.forEach((stall, index) => {
+                const row = document.createElement('tr');
+                const rankClass = index === 0 ? 'bg-yellow-50' : index === 1 ? 'bg-gray-50' : index === 2 ? 'bg-orange-50' : '';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <div class="flex items-center">
+                            <span class="text-lg font-bold ${index < 3 ? 'text-blue-600' : 'text-gray-500'}">${index + 1}</span>
+                            ${index < 3 ? `<i class="fas fa-trophy ml-2 ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-orange-500'}"></i>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <div class="font-medium text-gray-900">${stall.name}</div>
+                        <div class="text-gray-500">${getCuisineType(stall.type)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <div class="text-gray-900">${stall.area}</div>
+                        <div class="text-gray-500">${stall.city}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <div class="flex items-center">
+                            <span class="text-2xl font-bold ${getScoreColorClass(stall.overallScore)}">${stall.overallScore.toFixed(1)}</span>
+                            <span class="text-gray-500 ml-1">/10</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <div class="grid grid-cols-2 gap-1">
+                            <div class="text-xs">Water: <span class="font-medium">${stall.waterQuality.toFixed(1)}</span></div>
+                            <div class="text-xs">Masks: <span class="font-medium">${stall.maskUsage.toFixed(1)}</span></div>
+                            <div class="text-xs">Gloves: <span class="font-medium">${stall.gloveUsage.toFixed(1)}</span></div>
+                            <div class="text-xs">Clean: <span class="font-medium">${stall.cleanliness.toFixed(1)}</span></div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${rankClass}">
+                        <button onclick="viewStallDetails('${stall.id}')" class="text-blue-600 hover:text-blue-800 font-medium">
+                            ${stall.totalReviews} reviews
+                        </button>
+                    </td>
+                `;
+                leaderboardBody.appendChild(row);
+            });
+        }
+        
+        
+        function searchStalls(query) {
+            if (!query.trim()) {
+                showNotification('Please enter a city or area name to search', 'warning');
+                return;
+            }
+            
+            const normalizedQuery = query.toLowerCase();
+            const results = sampleStalls.filter(stall => 
+                stall.city.toLowerCase().includes(normalizedQuery) || 
+                stall.area.toLowerCase().includes(normalizedQuery) ||
+                stall.name.toLowerCase().includes(normalizedQuery)
+            );
+            
+            showSection('search');
+            searchResultsInfo.textContent = results.length > 0 
+                ? `Found ${results.length} stall(s) for "${query}"`
+                : `No stalls found for "${query}". Try a different search term.`;
+            
+            renderSearchResults(results);
+        }
+        
+        
+        function renderSearchResults(stalls) {
+            searchResults.innerHTML = '';
+            
+            if (stalls.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="col-span-3 text-center py-12">
+                        <i class="fas fa-search text-5xl text-gray-300 mb-4"></i>
+                        <h4 class="text-xl font-bold text-gray-700 mb-2">No results found</h4>
+                        <p class="text-gray-600">Try searching for a different city or area name.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            stalls.forEach(stall => {
+                const card = createStallCard(stall);
+                searchResults.appendChild(card);
+            });
+        }
+        
+        
+        function viewStallDetails(stallId) {
+            const stall = sampleStalls.find(s => s.id === stallId);
+            if (!stall) return;
+            
+            const reviews = sampleReviews.filter(r => r.stallId === stallId);
+            
+            document.getElementById('stall-modal-title').textContent = stall.name;
+            
+            let reviewsHTML = '';
+            reviews.forEach(review => {
+                reviewsHTML += `
+                    <div class="border-b border-gray-200 pb-4 mb-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium text-gray-800">${review.userName}</span>
+                            <span class="text-gray-500 text-sm">${review.date}</span>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            ${renderStars(review.rating)}
+                            <span class="ml-2 font-medium text-gray-700">${review.rating.toFixed(1)}</span>
+                        </div>
+                        <p class="text-gray-600">${review.comment}</p>
+                    </div>
+                `;
+            });
+            
+            if (reviews.length === 0) {
+                reviewsHTML = '<p class="text-gray-600 text-center py-4">No reviews yet. Be the first to review this stall!</p>';
+            }
+            
+            document.getElementById('stall-modal-content').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="md:col-span-2">
+                        <img src="${stall.photoUrl}" alt="${stall.name}" class="w-full h-64 object-cover rounded-lg" loading="lazy">
+                    </div>
+                    <div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-gray-800 mb-2">Hygiene Score</h4>
+                            <div class="text-center mb-4">
+                                <span class="text-4xl font-bold ${getScoreColorClass(stall.overallScore)}">${stall.overallScore.toFixed(1)}</span>
+                                <span class="text-gray-500 text-xl">/10</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Water Quality</span>
+                                    <span class="font-medium">${stall.waterQuality.toFixed(1)}/5</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Mask Usage</span>
+                                    <span class="font-medium">${stall.maskUsage.toFixed(1)}/5</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Glove Usage</span>
+                                    <span class="font-medium">${stall.gloveUsage.toFixed(1)}/5</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Cleanliness</span>
+                                    <span class="font-medium">${stall.cleanliness.toFixed(1)}/5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-800 mb-2">Description</h4>
+                    <p class="text-gray-600">${stall.description}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        <span>${stall.area}, ${stall.city}</span>
+                    </div>
+                    <div class="flex items-center text-gray-700 mt-2">
+                        <i class="fas fa-utensils mr-2"></i>
+                        <span>${getCuisineType(stall.type)} Cuisine</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-bold text-gray-800">Reviews (${reviews.length})</h4>
+                        ${currentUser ? `
+                            <button onclick="showAddReviewModal('${stall.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+                                Add Review
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="max-h-64 overflow-y-auto pr-2">
+                        ${reviewsHTML}
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button onclick="generateQRCode('${stall.id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-lg font-medium">
+                        <i class="fas fa-qrcode mr-2"></i> Generate QR Code
+                    </button>
+                    <button onclick="closeModal('stall-details-modal')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            openModal('stall-details-modal');
+        }
+        
+        
+        document.getElementById('add-stall-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                showNotification('Please login to add a stall', 'warning');
+                showLoginModal();
+                return;
+            }
