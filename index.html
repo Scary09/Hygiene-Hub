@@ -1057,41 +1057,56 @@
         }
         
         
-        document.getElementById('add-stall-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            if (!currentUser) {
-                showNotification('Please login to add a stall', 'warning');
-                showLoginModal();
-                return;
-            }
-            const stallName = document.getElementById('stall-name').value;
-            const stallType = document.getElementById('stall-type').value;
-            const stallCity = document.getElementById('stall-city').value;
-            const stallArea = document.getElementById('stall-area').value;
-            const stallDescription = document.getElementById('stall-description').value;
-            
-            const waterQuality = parseInt(document.getElementById('water-quality').value);
-            const maskUsage = parseInt(document.getElementById('mask-usage').value);
-            const gloveUsage = parseInt(document.getElementById('glove-usage').value);
-            const cleanliness = parseInt(document.getElementById('cleanliness').value);
-            
-            
-            const overallScore = ((waterQuality + maskUsage + gloveUsage + cleanliness) / 4) * 2;
-            
-            
-            showNotification(`"${stallName}" was recorded successfully!`, 'success');
-            
-            
-            document.getElementById('add-stall-form').reset();
-            document.getElementById('water-quality-value').textContent = '3';
-            document.getElementById('mask-usage-value').textContent = '3';
-            document.getElementById('glove-usage-value').textContent = '3';
-            document.getElementById('cleanliness-value').textContent = '3';
-            
-            
-            showSection('home');
-        });
+        document.getElementById('add-stall-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!currentUser) {
+        showNotification('Please login to add a stall', 'warning');
+        showLoginModal();
+        return;
+    }
+
+    // Prepare the data object
+    const newStall = {
+        name: document.getElementById('stall-name').value,
+        type: document.getElementById('stall-type').value,
+        city: document.getElementById('stall-city').value,
+        area: document.getElementById('stall-area').value,
+        description: document.getElementById('stall-description').value,
+        waterQuality: parseInt(document.getElementById('water-quality').value),
+        maskUsage: parseInt(document.getElementById('mask-usage').value),
+        gloveUsage: parseInt(document.getElementById('glove-usage').value),
+        cleanliness: parseInt(document.getElementById('cleanliness').value),
+        totalReviews: 1,
+        addedBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        photoUrl: "https://picsum.photos/400/300?random=" + Math.floor(Math.random() * 1000) // Placeholder
+    };
+
+    // Calculate initial overall score
+    newStall.overallScore = ((newStall.waterQuality + newStall.maskUsage + newStall.gloveUsage + newStall.cleanliness) / 4) * 2;
+
+    try {
+        // SAVE TO FIREBASE
+        const docRef = await db.collection('stalls').add(newStall);
+        
+        // Add ID to local object and push to your local array so it shows up immediately
+        newStall.id = docRef.id;
+        sampleStalls.push(newStall);
+
+        showNotification(`"${newStall.name}" added successfully!`, 'success');
+        
+        // Refresh UI
+        document.getElementById('add-stall-form').reset();
+        renderFeaturedStalls();
+        renderLeaderboard();
+        showSection('home');
+        
+    } catch (error) {
+        console.error("Error adding stall: ", error);
+        showNotification("Failed to add stall: " + error.message, 'error');
+    }
+});
         
         
         function generateQRCode(stallId) {
